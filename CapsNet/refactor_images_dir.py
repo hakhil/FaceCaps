@@ -4,17 +4,18 @@ from shutil import copyfile
 classes = set()
 d = dict()
 
-src = '/cplfw/images/'
-dst = '/data/'
+src = './Dataset/cplfw/images/'
+dst = './Dataset/data/'
 
 try:
-    os.makedirs('.'+dst)
+    os.makedirs(dst)
 except FileExistsError:
     # directory already exists
     pass
 
-for f in os.listdir('.'+src):
-    if f.find('jpg') > 0:
+
+for f in os.listdir(src):
+    if f.endswith('.jpg'):
         c = f.rsplit('_', 1)[0]
         if c in d:
             d[c] += 1
@@ -23,12 +24,12 @@ for f in os.listdir('.'+src):
         classes.add(c)
 
         try:
-            os.makedirs('.' + dst + c + '/')
+            os.makedirs(dst + c + '/')
         except FileExistsError:
             # directory already exists
             pass
 
-        print('.' + src + f, ";", '.' + dst + c + '/' + f)
-        copyfile('.' + src + f, '.' + dst + c + '/' + f)
+        print(src + f, ";", dst + c + '/' + f)
+        copyfile(src + f, dst + c + '/' + f)
 
 print('# of classes: ', len(classes))
