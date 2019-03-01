@@ -24,7 +24,7 @@ class DataLoad(data.Dataset):
 
         # Load data and get label
         img = load_img(self.src + ID)
-        X = torch.Tensor(img_to_array(img))
+        X = torch.Tensor(img_to_array(img)).view(3, 250, 250)
         y = self.labels[index]
 
         return X, y
