@@ -2,6 +2,7 @@ import numpy as np
 
 import torch
 import os
+import math
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
@@ -13,6 +14,11 @@ from data_loader import DataLoad
 
 USE_CUDA = False
 
+input_dim = 28
+
+def cnn_out_size(input_dim, padding, kernel_size, stride):
+    return ((input_dim + 2 * padding - kernel_size) // stride) + 1
+
 class LFW:
     def __init__(self, batch_size):
         dataset_transform = transforms.Compose([
@@ -20,7 +26,7 @@ class LFW:
             transforms.Normalize((0.1307,), (0.3081,))
         ])
 
-        src = './Dataset/data/'
+        src = './data/lfw/'
         images, targets = self.load_data(src)
         dataset_size = len(images)
         validation_split = 0.2
@@ -77,6 +83,9 @@ class ConvLayer(nn.Module):
                              )
 
     def forward(self, x):
+        global input_dim
+        input_dim = cnn_out_size(input_dim, self.conv.padding[0], self.conv.kernel_size[0], self.conv.stride[0])
+
         return F.relu(self.conv(x))
 
 
@@ -91,7 +100,13 @@ class PrimaryCaps(nn.Module):
     def forward(self, x):
         u = [capsule(x) for capsule in self.capsules]
         u = torch.stack(u, dim=1)
-        u = u.view(x.size(0), 32 * 117 * 117, -1)
+
+#         global input_dim
+#         print("input_dim", input_dim)
+#         input_dim = cnn_out_size(input_dim, 0, 9, 2)
+#         print("input_dim", input_dim)
+
+        u = u.view(x.size(0), 32 * 6 * 6, -1)
         return self.squash(u)
 
     def squash(self, input_tensor):
@@ -101,7 +116,7 @@ class PrimaryCaps(nn.Module):
 
 
 class DigitCaps(nn.Module):
-    def __init__(self, num_capsules=10, num_routes=32 * 117 * 117, in_channels=8, out_channels=16):
+    def __init__(self, num_capsules=200, num_routes=32 * 6 * 6, in_channels=8, out_channels=16):
         super(DigitCaps, self).__init__()
 
         self.in_channels = in_channels
@@ -157,7 +172,7 @@ class CapsNet(nn.Module):
         # return output, reconstructions, masked
         return output
 
-    def loss(self, data, x, target, reconstructions):
+    def loss(self, data, x, target):#, reconstructions):
         return self.margin_loss(x, target) #+ self.reconstruction_loss(data, reconstructions)
 
     def margin_loss(self, x, labels, size_average=True):
@@ -178,14 +193,15 @@ class CapsNet(nn.Module):
         return loss * 0.0005
 
 if __name__ == "__main__":
+
+    batch_size = 32
+    lfw = LFW(batch_size)
+
     capsule_net = CapsNet()
 
     if USE_CUDA:
         capsule_net = capsule_net.cuda()
     optimizer = Adam(capsule_net.parameters())
-
-    batch_size = 8
-    lfw = LFW(batch_size)
 
     n_epochs = 3
 
@@ -209,4 +225,5 @@ if __name__ == "__main__":
             train_loss += loss.item()
 
             if batch_id % 100:
-                print("Train accuracy: ", sum(np.argmax(target.data.cpu().numpy(), 1)) / float(batch_size))
+                print("Epoch: %d, Train accuracy: %d" % (
+                epoch, sum(np.argmax(target.data.cpu().numpy(), 1)) / float(batch_size)))
