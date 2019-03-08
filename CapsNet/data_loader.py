@@ -21,10 +21,11 @@ class DataLoad(data.Dataset):
         'Generates one sample of data'
         # Select sample
         ID = self.list_IDs[index]
+        img_dimension = 28
 
         # Load data and get label
         img = load_img(self.src + ID)
-        X = torch.Tensor(img_to_array(img)).view(3, 250, 250)
+        X = torch.Tensor(img_to_array(img)).view(3, img_dimension, img_dimension)
         y = self.labels[index]
 
         return X, y
