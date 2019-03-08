@@ -6,7 +6,7 @@ from resizeimage import resizeimage
 classes = set()
 d = dict()
 
-src = './Dataset/lfw/'
+src = './Dataset/filtered/lfw/'
 dst = './Dataset/data/lfw/'
 
 image_dimension = 28
@@ -26,7 +26,7 @@ for g in os.listdir(src):
             except FileExistsError:
                 pass
 
-            print(src + '/' + g + '/' + f, ";", dst + g + '/' + f)
+            print(src + '/' + g + '/' + f, "->", dst + g + '/' + f)
             # copyfile(src + '/' + g + '/' + f, dst + g + '/' + f)
 
             with open(src + '/' + g + '/' + f, 'r+b') as fp:

@@ -32,7 +32,7 @@ for f in os.listdir(src):
             # directory already exists
             pass
 
-        print(src + f, ";", dst + c + '/' + f)
+        print(src + f, "->", dst + c + '/' + f)
 
         with open(src + f, 'r+b') as fp:
             with Image.open(fp) as image:
