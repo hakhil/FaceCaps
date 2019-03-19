@@ -1,3 +1,7 @@
+# Dataset folder not uploaded
+Dataset/lfw/
+Dataset/cplfw/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
