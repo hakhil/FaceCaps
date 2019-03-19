@@ -21,12 +21,12 @@ def cnn_out_size(input_dim, padding, kernel_size, stride):
 
 class LFW:
     def __init__(self, batch_size):
-        dataset_transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.1307,), (0.3081,))
-        ])
+        # dataset_transform = transforms.Compose([
+        #     transforms.ToTensor(),
+        #     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        # ])
 
-        src = './data/lfw/'
+        src = './Dataset/data/lfw/'
         images, targets = self.load_data(src)
         dataset_size = len(images)
         validation_split = 0.2
@@ -38,13 +38,15 @@ class LFW:
         train_sampler = SubsetRandomSampler(train_indices)
         test_sampler = SubsetRandomSampler(test_indices)
 
-        dataset = DataLoad(src, images, targets)
+        dataset = DataLoad(src, images, targets, self.n_classes)
+        print(dataset)
 
         # Dataloader parameters
         params = {
             'batch_size': batch_size,
             'shuffle': False,
-            'num_workers': 6
+            'num_workers': 6,
+            'drop_last': True
         }
 
         self.train_loader = torch.utils.data.DataLoader(dataset, sampler=train_sampler, **params)
@@ -116,7 +118,7 @@ class PrimaryCaps(nn.Module):
 
 
 class DigitCaps(nn.Module):
-    def __init__(self, num_capsules=200, num_routes=32 * 6 * 6, in_channels=8, out_channels=16):
+    def __init__(self, num_capsules=50, num_routes=32 * 6 * 6, in_channels=8, out_channels=16):
         super(DigitCaps, self).__init__()
 
         self.in_channels = in_channels
@@ -156,24 +158,54 @@ class DigitCaps(nn.Module):
         return output_tensor
 
 
+class Decoder(nn.Module):
+    def __init__(self):
+        super(Decoder, self).__init__()
+
+        self.reconstraction_layers = nn.Sequential(
+            nn.Linear(16 * 50, 512 * 3),
+            nn.ReLU(inplace=True),
+            nn.Linear(512 * 3, 1024 * 3),
+            nn.ReLU(inplace=True),
+            nn.Linear(1024 * 3, 784 * 3),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x, data):
+        classes = torch.sqrt((x ** 2).sum(2))
+        classes = F.softmax(classes)
+
+        _, max_length_indices = classes.max(dim=1)
+        masked = Variable(torch.sparse.torch.eye(50))
+        if USE_CUDA:
+            masked = masked.cuda()
+        masked = masked.index_select(dim=0, index=max_length_indices.squeeze(1).data)
+
+        reconstructions = self.reconstraction_layers((x * masked[:, :, None, None]).view(x.size(0), -1))
+
+        reconstructions = reconstructions.view(-1, 3, 28, 28)
+
+        return reconstructions, masked
+
+
 class CapsNet(nn.Module):
     def __init__(self):
         super(CapsNet, self).__init__()
         self.conv_layer = ConvLayer()
         self.primary_capsules = PrimaryCaps()
         self.digit_capsules = DigitCaps()
-        # self.decoder = Decoder()
+        self.decoder = Decoder()
 
         self.mse_loss = nn.MSELoss()
 
     def forward(self, data):
         output = self.digit_capsules(self.primary_capsules(self.conv_layer(data)))
-        # reconstructions, masked = self.decoder(output, data)
-        # return output, reconstructions, masked
-        return output
+        reconstructions, masked = self.decoder(output, data)
+        return output, reconstructions, masked
+#         return output
 
-    def loss(self, data, x, target):#, reconstructions):
-        return self.margin_loss(x, target) #+ self.reconstruction_loss(data, reconstructions)
+    def loss(self, data, x, target, reconstructions):
+        return self.margin_loss(x, target) + self.reconstruction_loss(data, reconstructions)
 
     def margin_loss(self, x, labels, size_average=True):
         batch_size = x.size(0)
@@ -194,7 +226,7 @@ class CapsNet(nn.Module):
 
 if __name__ == "__main__":
 
-    batch_size = 32
+    batch_size = 16
     lfw = LFW(batch_size)
 
     capsule_net = CapsNet()
@@ -203,13 +235,13 @@ if __name__ == "__main__":
         capsule_net = capsule_net.cuda()
     optimizer = Adam(capsule_net.parameters())
 
-    n_epochs = 3
+    n_epochs = 2
 
     for epoch in range(n_epochs):
         capsule_net.train()
         train_loss = 0
         for batch_id, (data, target) in enumerate(lfw.train_loader):
-
+            print(data.shape, target)
             target = torch.sparse.torch.eye(lfw.n_classes).index_select(dim=0, index=target)
             data, target = Variable(data), Variable(target)
 
@@ -217,8 +249,8 @@ if __name__ == "__main__":
                 data, target = data.cuda(), target.cuda()
 
             optimizer.zero_grad()
-            output = capsule_net(data)
-            loss = capsule_net.loss(data, output, target)
+            output, reconstructions, masked = capsule_net(data)
+            loss = capsule_net.loss(data, output, target, reconstructions)
             loss.backward()
             optimizer.step()
 

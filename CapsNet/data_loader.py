@@ -1,7 +1,8 @@
 import os
 import torch
 from torch.utils import data
-from keras.preprocessing.image import img_to_array, load_img
+from keras.preprocessing.image import img_to_array
+import matplotlib.image as mpimg
 
 # Leverages Pytorch Dataset to use data loader
 class DataLoad(data.Dataset):
@@ -24,8 +25,9 @@ class DataLoad(data.Dataset):
         img_dimension = 28
 
         # Load data and get label
-        img = load_img(self.src + ID)
-        X = torch.Tensor(img_to_array(img)).view(3, img_dimension, img_dimension)
+        # img = load_img(self.src + ID)
+        img = mpimg.imread(self.src + ID)
+        X = torch.Tensor(img).view(3, img_dimension, img_dimension)
         y = self.labels[index]
 
         return X, y

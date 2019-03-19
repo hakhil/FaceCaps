@@ -1,7 +1,7 @@
 import os
 from shutil import copyfile
 
-filter_top_classes = 350
+filter_top_classes = 25
 
 def get_cplfw_classes():
     classes = set()
@@ -15,7 +15,7 @@ def get_common_classes():
     return lfw_classes.intersection(cplfw_classes)
 
 cplfw_src = './Dataset/cplfw/images/'
-lfw_src = './Dataset/lfw/'
+lfw_src = './Dataset/cleaned_data/lfw/'
 
 cplfw_classes = get_cplfw_classes()
 lfw_classes = set([f for f in os.listdir(lfw_src)])
@@ -36,7 +36,7 @@ common_classes = sorted(common_classes, key=lambda k: image_count[k], reverse=Tr
 top_classes = common_classes[:filter_top_classes]
 
 print("Common classes sorted in decreasing order of number of images in the class:")
-print([(k, image_count[k]) for k in common_classes][:filter_top_classes])
+print([(k, image_count[k]) for k in common_classes][:filter_top_classes][:filter_top_classes])
 
 # Move top classes to another directory
 dst = './Dataset/filtered/lfw'

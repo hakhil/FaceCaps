@@ -9,7 +9,7 @@ d = dict()
 src = './Dataset/filtered/lfw/'
 dst = './Dataset/data/lfw/'
 
-image_dimension = 28
+image_dimension = 36
 
 try:
     os.makedirs(dst)
