@@ -1,5 +1,8 @@
 import os
+from PIL import Image
+from resizeimage import resizeimage
 from shutil import copyfile
+
 
 filter_top_classes = 25
 
@@ -39,15 +42,47 @@ print("Common classes sorted in decreasing order of number of images in the clas
 print([(k, image_count[k]) for k in common_classes][:filter_top_classes][:filter_top_classes])
 
 # Move top classes to another directory
-dst = './Dataset/filtered/lfw'
+lfw_dst = './Dataset/data/lfw'
+cplfw_dst = './Dataset/data/cplfw'
 
+cplfw_src = './Dataset/cleaned_data/cplfw'
 # LFW
+# for g in os.listdir(lfw_src):
+#     if g in top_classes:
+#         for f in os.listdir(lfw_src + '/' + g):
+#             if f.endswith('.jpg'):
+#                 try:
+#                     os.makedirs(lfw_dst + '/' + g)
+#                 except FileExistsError:
+#                     pass
+#                 copyfile(lfw_src + '/' + g + '/' + f, lfw_dst + '/' + g + '/' + f)
+
+image_dimension = 144
 for g in os.listdir(lfw_src):
     if g in top_classes:
         for f in os.listdir(lfw_src + '/' + g):
             if f.endswith('.jpg'):
                 try:
-                    os.makedirs(dst + '/' + g)
+                    os.makedirs(lfw_dst + '/' + g)
                 except FileExistsError:
                     pass
-                copyfile(lfw_src + '/' + g + '/' + f, dst + '/' + g + '/' + f)
+                with open(lfw_src + '/' + g + '/' + f, 'r+b') as fp:
+                    with Image.open(fp) as image:
+                        cover = resizeimage.resize_cover(image, [image_dimension, image_dimension])
+                        cover.save(lfw_dst + '/' + g + '/' + f, image.format)
+
+# CPLFW
+# image_dimension = 56
+for g in os.listdir(cplfw_src):
+    if g in top_classes:
+        for f in os.listdir(cplfw_src + '/' + g):
+            if f.endswith('.jpg'):
+                try:
+                    os.makedirs(cplfw_dst + '/' + g)
+                except FileExistsError:
+                    pass
+                with open(cplfw_src + '/' + g + '/' + f, 'r+b') as fp:
+                    with Image.open(fp) as image:
+                        cover = resizeimage.resize_cover(image, [image_dimension, image_dimension])
+                        cover.save(cplfw_dst + '/' + g + '/' + f, image.format)
+                # copyfile(cplfw_src + '/' + g + '/' + f, cplfw_dst + '/' + g + '/' + f)
