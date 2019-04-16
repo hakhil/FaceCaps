@@ -57,11 +57,14 @@ cplfw_src = './Dataset/cleaned_data/cplfw'
 #                     pass
 #                 copyfile(lfw_src + '/' + g + '/' + f, lfw_dst + '/' + g + '/' + f)
 
+max_per_class = 50
 image_dimension = 144
 for g in os.listdir(lfw_src):
     if g in top_classes:
+        c = 0
         for f in os.listdir(lfw_src + '/' + g):
             if f.endswith('.jpg'):
+                c += 1
                 try:
                     os.makedirs(lfw_dst + '/' + g)
                 except FileExistsError:
@@ -70,13 +73,17 @@ for g in os.listdir(lfw_src):
                     with Image.open(fp) as image:
                         cover = resizeimage.resize_cover(image, [image_dimension, image_dimension])
                         cover.save(lfw_dst + '/' + g + '/' + f, image.format)
+                if c == max_per_class:
+                    break
 
 # CPLFW
 # image_dimension = 56
 for g in os.listdir(cplfw_src):
     if g in top_classes:
+        c = 0
         for f in os.listdir(cplfw_src + '/' + g):
             if f.endswith('.jpg'):
+                c += 1
                 try:
                     os.makedirs(cplfw_dst + '/' + g)
                 except FileExistsError:
@@ -85,4 +92,6 @@ for g in os.listdir(cplfw_src):
                     with Image.open(fp) as image:
                         cover = resizeimage.resize_cover(image, [image_dimension, image_dimension])
                         cover.save(cplfw_dst + '/' + g + '/' + f, image.format)
+                if c == max_per_class:
+                    break
                 # copyfile(cplfw_src + '/' + g + '/' + f, cplfw_dst + '/' + g + '/' + f)
